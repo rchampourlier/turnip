@@ -1,409 +1,99 @@
-# Turnip
+# From Cucumber to Turnip in 5 minutes
 
-[![Build Status](https://secure.travis-ci.org/jnicklas/turnip.png)](http://travis-ci.org/jnicklas/turnip)
+_This is the README for the fork. You can still read the original README in this repo: README-forked.rb._
 
-Turnip is a [Gherkin](https://github.com/cucumber/cucumber/wiki/Gherkin)
-extension for RSpec. It allows you to write tests in Gherkin and run them
-through your RSpec environment. Basically you can write cucumber features in
-RSpec.
+## Why turning to Turnip?
+
+* Instead of having RSpec **and** Cucumber, just have RSpec. Guessing the good part?
+* Turnip step definitions are more easy to read.
+ 
+**Here are some references on this subject:**
+
+* [Turnip's author introductory post](http://elabs.se/blog/30-solving-cucumber-s-problems).
+* [Thoughbot's review](http://robots.thoughtbot.com/post/21494223079/turnip-a-tasty-cucumber-alternative)
+
+## What does the fork?
+
+**It allows you to continue using Regexp in your step definitions as you did with Cucumber.**
+
+## Why is this nice?
+
+* **Turning from Cucumber to Turnip is now a matter of minutes!**
+* You can **continue using Cucumber** in parallel for some specific requirements if you feel so, **and share** (almost *) **your Cucumber step-definitions with Turnip** (the contrary isn't possible however).
+* You may feel less worried by the fact that **Turnip now supports Regexp step definitions**!
+
+_* Sadly, Cucumber uses `Given/When/Then` for a step definition, while Turnip only uses `step` (what I find more logical in the context of a step definition). So you will have to do simple search and replace to move your step definitions from Cucumber to Turnip (and back if you need to)._
+
+
+## The point of the forker
+
+I understand the points of Turnip not using Regexp:
+
+* easier to read,
+* faster to write.
+
+However with hundreds of step definitions, **I don't want to spend hours converting them for Turnip just to check if this works** as a replacement of Cucumber for my project.
+
+## Changes in the fork
+
+* Changed StepDefinition to support Regexp.
+* Added some specs to ensure this is working correctly with Regexps too.
 
 ## Installation
 
-Install the gem
+### Installing the gem from the fork
+
+Add this to your Gemfile to use this fork of Turnip:
+
+    gem 'turnip', :git => "https://github.com/rchampourlier/turnip.git"
+    
+Run `bundle install` and **follow original Turnip's README for Turnip's installation**.
+
+You should be able to keep using Cucumber while using Turnip if you need so until your trusting Turnip enough to remove Cucumber.
+
+### Copy your features
+
+Copy your Cucumber's features to your Turnip's acceptance  directory (e.g. `spec/acceptance`).
+
+### Copy and change (a little) your step definitions
+
+Copy your step definitions to your `spec` directory, for example in `spec/acceptance/step_definitions`.
+
+Turnip's doesn't support `Given/When/Then` used by Cucumber in step definitions, so you will need a simple search and replace to rename them all to `step`. (Converting them back to Cucumber will require the reverse search and replace, using any of `Given/When/Then` since it is not interpreted by Cucumber in step definitions - which makes Turnip more logical when using only `step`).
+
+### Load some Cucumber helpers in RSpec
+
+If you're using Cucumber, you may rely on the `web_steps.rb` step definitions which itself relies on two helpers. They were designed to be loaded in Cucumber, so they need some minor changes to work in RSpec/Turnip.
+
+If you see some `World(<the name of a module>)` in your Cucumber's step definitions, track the module down, extract it to a file you move to your `spec` directory (e.g. `spec/support/helpers`) and add these lines to your `spec_helper.rb` to load them in your RSpec examples:
 
 ```
-gem install turnip
-```
+# Turnip cucumber retro-compatibility helpers
 
-Or add it to your Gemfile and run `bundle`.
-
-``` ruby
-group :test do
-  gem "turnip"
-end
-```
-
-Now edit the `.rspec` file in your project directory (create it if doesn't
-exist), and add the following line:
-
-```
--r turnip
-```
-
-## Development
-
-* Source hosted at [GitHub](http://github.com/jnicklas/turnip).
-* Please direct questions, discussion or problems to the [mailing list](http://groups.google.com/group/ruby-turnip).
-  Please do not open an issue on GitHub if you have a question.
-* If you found a reproducible bug, open a [GitHub Issue](http://github.com/jnicklas/turnip/issues) to submit a bug report.
-* Please do not contact any of the maintainers directly, unless you have found a security related issue.
-
-Pull requests are very welcome (and even better than bug reports)!
-Please create a topic branch for every separate change you make.
-
-## Compatibility
-
-Turnip does not work on Ruby 1.8.X.
-
-## Usage
-
-Add a feature file anywhere in your `spec` directory:
-
-``` cucumber
-# spec/acceptance/attack_monster.feature
-Feature: Attacking a monster
-  Background:
-    Given there is a monster
-
-  Scenario: attack the monster
-    When I attack it
-    Then it should die
-```
-
-Now you can run it just like you would run any other rspec spec:
-
-```
-rspec spec/acceptance/attack_monster.feature
-```
-
-It will automatically be run if you run all your specs with `rake spec` or
-`rspec spec`.
-
-Yes, that's really it.
-
-## Defining steps
-
-You might want to define some steps.  Just as in cucumber, your step files
-should be named `[something]_steps.rb`.  All files ending in `*steps.rb`
-will be automatically required if they are under the Turnip step directory.
-
-The default step directory for Turnip is `spec/`.  You can override this
-in your `spec_helper` by setting `Turnip::Config.step_dirs`.  For example:
-
-``` ruby
-# spec/spec_helper.rb
 RSpec.configure do |config|
-  Turnip::Config.step_dirs = 'examples'
-  Turnip::StepLoader.load_steps
-end
-```
-
-This would set the Turnip step dirs to `examples/` and automatically load
-all `*steps.rb` files anywhere under that directory.
-
-The steps you define in your step files can be global or they can be scoped
-to certain features (or scenarios)...
-
-### Global steps
-Global steps can be used by any feature/scenario you write since they are
-unscoped.  The names must be unique across all step files in the global
-namespace.
-
-Define them in your step file like this:
-
-``` ruby
-step "there is a monster" do
-  @monster = Monster.new
-end
-```
-
-Note that unlike Cucumber, Turnip does not support regexps in step definitions.
-You can however use placeholders in your step definitions, like this:
-
-``` ruby
-step "there is a monster called :name" do |name|
-  @monster = Monster.new(name)
-end
-```
-
-You can now put values in this placeholder, either quoted or not:
-
-``` cucumber
-Given there is a monster called Jonas
-And there is a monster called "Jonas Nicklas"
-```
-
-You can also specify alternative words and optional parts of words, like this:
-
-``` ruby
-step "there is/are :count monster(s)" do |count|
-  @monsters = Array.new(count) { Monster.new }
-end
-```
-
-That will match both "there is X monster" or "there are X monsters".
-
-You can also define custom step placeholders.  More on that later.
-
-### Scoped steps
-Scoped steps help you to organize steps that are specific to
-certain features or scenarios.  They only need to be unique within
-the scopes being used by the running scenario.
-
-To define scoped steps use `steps_for`:
-
-``` ruby
-steps_for :interface do
-  step "I do it" do
-    ...
+  Dir[File.join(File.expand_path("../integration/support/helpers", __FILE__), '*.rb')].each do |file|
+    require file
   end
-end
-
-steps_for :database do
-  step "I do it" do
-    ...
-  end
-end
-```
-
-Even though the step is named the same, you can now use it in
-your feature files like so:
-
-``` cucumber
-@interface
-Scenario: do it through the interface
-
-@database
-Scenario: do it through the database
-```
-
-Note that this would still cause an error if you tagged a Scenario
-with both `@interface` and `@database` at the same time.
-
-Scoped steps are really just Ruby modules under the covers so you
-can do anything you'd normally want to do including defining
-helper/utility methods and variables.  Check out
-[features/alignment_steps.rb](https://github.com/jnicklas/turnip/blob/master/examples/alignment_steps.rb)
-and
-[features/evil_steps.rb](https://github.com/jnicklas/turnip/blob/master/examples/evil_steps.rb) for basic examples.
-
-### Reusing steps
-When using scoped steps in Turnip, you can tell it to also include steps
-defined in another `steps_for` block.  The syntax for that is `use_steps`:
-
-``` ruby
-# dragon_steps.rb
-steps_for :dragon do
-  use_steps :knight
-
-  attr_accessor :dragon
-
-  def dragon_attack
-    dragon * 10
-  end
-
-  step "there is a dragon" do
-    self.dragon = 1
-  end
-
-  step "the dragon attacks the knight" do
-    knight.attacked_for(dragon_attack)
-  end
-end
-
-# red_dragon_steps.rb
-steps_for :red_dragon do
-  use_steps :dragon
-
-  attr_accessor :red_dragon
-
-  def dragon_attack
-    attack = super
-    if red_dragon
-      attack + 15
-    else
-      attack
-    end
-  end
-
-  step "the dragon breathes fire" do
-    self.red_dragon = 1
-  end
+  
+  config.include(TheNameOfAModule)
+  
+  # You may want to add those if you're using
+  # Cucumber's web_steps and email_spec
+  # config.include(EmailHelpers)
+  # config.include(HtmlSelectorsHelpers)
+  # config.include(WithinHelpers)
 end
 ```
 
+_This example will include helpers for email_spec and the original helpers needed by Cucumber's `web_steps.rb`. The extracted helpers are available in this repo's `helpers` directory._
 
-In this example we are making full use of Ruby's modules including using super
-to call the included module's version of `dragon_attack`, for example with the
-following feature file:
+You may copy your Cucumber's `path.rb` file in the parent directory of your step definitions.
 
-``` cucumber
-Feature: Red Dragons are deadly
+## Benchmarks
 
-  @dragon
-  Scenario:
-    Given there is a dragon
-    And there is a knight
-    When the dragon attacks the knight
-    Then the knight is alive
+Improvements on a totally arbitrary test suite:
 
-  @red_dragon
-  Scenario:
-    Given there is a dragon
-    And the dragon breathes fire
-    And there is a knight
-    When the dragon attacks the knight
-    Then the knight is dead
-```
+* Cucumber, standalone: total 93s (Cucumber indicates 33s, so I suppose about 1min to load the environment).
+* Turnip, RSpec running on Spork: total 45s
 
-### Calling steps from other steps
-You can also call steps from other steps. This is done by just calling `step
-"name_of_the_step"`, so for instance if you have:
-
-``` ruby
-step "a random step" do
-  @value = 1
-end
-
-step "calling a step" do
-  step "a random step"
-  @value += 1
-end
-```
-
-Now if you use the step `calling a step` in any Scenario, then the value of
-`@value` will be 2 afterwards as it first executes the code defined for the step
-`a random step`. You can think of it as a simple method call.
-
-### Auto-included steps
-By default, Turnip will automatically make available any steps defined in
-a `steps_for` block with the same name as the feature file being run.  For
-example, given this step file:
-
-``` ruby
-# user_signup_steps.rb
-steps_for :user_signup do
-  step "I am on the homepage" do
-    ...
-  end
-
-  step "I signup with valid info" do
-    ...
-  end
-
-  step "I should see a welcome message" do
-    ...
-  end
-end
-```
-
-Then the following feature file would run just fine even though we
-did not explicitly tag it with `@user_signup`.
-
-``` cucumber
-# user_signup.feature
-Feature: A user can signup
-  Scenario: with email address
-    Given I am on the homepage
-    When I signup with valid info
-    Then I should see a welcome message
-```
-
-Note that the `steps_for :user_signup` did not technically have to
-appear in the user_signup_steps.rb file; it could have been located
-in any `steps.rb` file that was autoloaded by Turnip.
-
-This feature can be turned off using the `Turnip::Config.autotag_features`
-option if desired.
-
-## Custom step placeholders
-Do you want to be more specific in what to match in your step
-placeholders?  Do you find it bothersome to have to constantly cast them to the
-correct type?  Turnip supports custom placeholders to solve both problems, like this:
-
-``` ruby
-step "there are :count monsters" do |count|
-  count.times { Monster.new(name) }
-end
-
-placeholder :count do
-  match /\d+/ do |count|
-    count.to_i
-  end
-
-  match /no/ do
-    0
-  end
-end
-```
-
-You would now be able to use these steps like this:
-
-``` cucumber
-Given there are 4 monsters
-Given there are no monsters
-```
-
-Placeholders can extract matches from the regular expressions as well. For
-example:
-
-``` ruby
-placeholder :monster do
-  match /(blue|green|red) (furry|bald) monster/ do |color, hair|
-    Monster.new(color, hair)
-  end
-end
-```
-
-These regular expressions must not use anchors, e.g. `^` or `$`. They may not
-contain named capture groups, e.g. `(?<color>blue|green)`.
-
-## Table Steps
-Turnip also supports steps that take a table as a parameter similar to Cucumber:
-
-``` cucumber
-Scenario: This is a feature with a table
-  Given there are the following monsters:
-    | Name    | Hitpoints |
-    | Blaaarg | 23        |
-    | Moorg   | 12        |
-  Then "Blaaarg" should have 23 hitpoints
-  And "Moorg" should have 12 hitpoints
-```
-The table is a `Turnip::Table` object which works in much the same way as Cucumber's
-`Cucumber::Ast::Table` obects.
-
-E.g. converting the `Turnip::Table` to an array of hashes:
-
-``` ruby
-step "there are the following monsters:" do |table|
-  @monsters = {}
-  table.hashes.each do |hash|
-    @monsters[hash['Name']] = hash['Hitpoints'].to_i
-  end
-end
-```
-
-## Using with Capybara
-
-Just require `turnip/capybara` in your `spec_helper`. You can now use the
-same tags you'd use in Cucumber to switch between drivers e.g.
-`@javascript` or `@selenium`. Your Turnip features will also be run
-with the `:type => :request` metadata, so that Capybara is included and
-also any other extensions you might want to add.
-
-## License
-
-(The MIT License)
-
-Copyright (c) 2011 Jonas Nicklas
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-'Software'), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+The difference is essentially the loading time of the environment. If you're not using Spork, you will still see an improvement when running both unit and integration tests, since they will all run in the same environment (RSpec), which gets loaded once (while RSpec + Cucumber is 2).
