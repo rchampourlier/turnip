@@ -57,20 +57,24 @@ module Turnip
     COMMAND_REGEXP = /`([^`]+)`/
 
     def compile_regexp
-      regexp = Regexp.escape(expression)
-      regexp.gsub!(COMMAND_REGEXP) do |_|
-        "(?:[`]([^`]+)[`])"
+      if expression.is_a? Regexp
+        expression
+      else
+        regexp = Regexp.escape(expression)
+        regexp.gsub!(COMMAND_REGEXP) do |_|
+          "(?:[`]([^`]+)[`])"
+        end
+        regexp.gsub!(OPTIONAL_WORD_REGEXP) do |_|
+          [$1, $2, $3].compact.map { |m| "(#{m})?" }.join
+        end
+        regexp.gsub!(ALTERNATIVE_WORD_REGEXP) do |_|
+          "(#{$1}#{$2.tr('/', '|')})"
+        end
+        regexp.gsub!(PLACEHOLDER_REGEXP) do |_|
+          "(?<#{$1}>#{Placeholder.resolve($1.to_sym)})"
+        end
+        Regexp.new("^#{regexp}$")
       end
-      regexp.gsub!(OPTIONAL_WORD_REGEXP) do |_|
-        [$1, $2, $3].compact.map { |m| "(#{m})?" }.join
-      end
-      regexp.gsub!(ALTERNATIVE_WORD_REGEXP) do |_|
-        "(#{$1}#{$2.tr('/', '|')})"
-      end
-      regexp.gsub!(PLACEHOLDER_REGEXP) do |_|
-        "(?<#{$1}>#{Placeholder.resolve($1.to_sym)})"
-      end
-      Regexp.new("^#{regexp}$")
     end
   end
 end
