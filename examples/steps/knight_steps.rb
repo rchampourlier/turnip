@@ -1,4 +1,4 @@
-steps_for :knight do
+module KnightSteps
   attr_accessor :knight
 
   class Knight
@@ -27,3 +27,5 @@ steps_for :knight do
     knight.should_not be_alive
   end
 end
+
+RSpec.configure { |c| c.include KnightSteps, :knight => true }

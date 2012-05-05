@@ -1,12 +1,10 @@
+require "gherkin"
+
 module Turnip
   class Builder
     module Tags
       def tags
         @raw.tags.map { |tag| tag.name.sub(/^@/, '') }
-      end
-      
-      def active_tags
-        tags.map(&:to_sym)
       end
 
       def tags_hash
@@ -36,13 +34,9 @@ module Turnip
         @scenarios = []
         @backgrounds = []
       end
-      
-      # Feature's active_tags automatically prepends the :global tag
-      # as well as its feature_tag if defined
-      def active_tags
-        active_tags = [:global]
-        active_tags << feature_tag.to_sym if feature_tag
-        active_tags + super
+
+      def line
+        @raw.line
       end
 
       def metadata_hash
@@ -88,30 +82,36 @@ module Turnip
           Scenario.new(@raw).tap do |scenario|
             scenario.steps = steps.map do |step|
               new_description = step.description.gsub(/<([^>]*)>/) { |_| Hash[headers.zip(row)][$1] }
-              Step.new(new_description, step.extra_arg)
+              Step.new(new_description, step.extra_args, step.line)
             end
           end
         end
       end
     end
 
-    class Step < Struct.new(:description, :extra_arg)
+    class Step < Struct.new(:description, :extra_args, :line)
+      # 1.9.2 support hack
+      def split(*args)
+        self.to_s.split(*args)
+      end
+
+      def to_s
+        description
+      end
     end
 
     attr_reader :features
 
     class << self
       def build(feature_file)
-        Turnip::Builder.new(feature_file).tap do |builder|
-          formatter = Gherkin::Formatter::TagCountFormatter.new(builder, {})
-          parser = Gherkin::Parser::Parser.new(formatter, true, "root", false)
-          parser.parse(feature_file.content, nil, 0)
+        Turnip::Builder.new.tap do |builder|
+          parser = Gherkin::Parser::Parser.new(builder, true)
+          parser.parse(File.read(feature_file), nil, 0)
         end
       end
     end
 
-    def initialize(feature_file)
-      @feature_file = feature_file
+    def initialize
       @features = []
     end
 
@@ -122,8 +122,6 @@ module Turnip
 
     def feature(feature)
       @current_feature = Feature.new(feature)
-      # Automatically add a tag based on the name of the feature to the Feature if configured to
-      @current_feature.feature_tag = @feature_file.feature_name if Turnip::Config.autotag_features
       @features << @current_feature
     end
 
@@ -141,12 +139,16 @@ module Turnip
     end
 
     def step(step)
+      extra_args = []
       if step.doc_string
-        extra_arg = step.doc_string.value
+        extra_args.push step.doc_string.value
       elsif step.rows
-        extra_arg = Turnip::Table.new(step.rows.map { |row| row.cells(&:value) })
+        extra_args.push Turnip::Table.new(step.rows.map { |row| row.cells(&:value) })
       end
-      @current_step_context.steps << Step.new(step.name, extra_arg)
+      @current_step_context.steps << Step.new(step.name, extra_args, step.line)
+    end
+
+    def uri(*)
     end
 
     def eof

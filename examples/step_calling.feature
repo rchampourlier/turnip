@@ -1,5 +1,7 @@
+@step_calling
 Feature: Step-calling steps
 
+  @wip
   Scenario: when the called step is visible
     Given a visible step call
 

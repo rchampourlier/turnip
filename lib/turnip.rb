@@ -1,48 +1,42 @@
-require "gherkin"
-require "gherkin/formatter/tag_count_formatter"
-
 require "turnip/version"
 require "turnip/dsl"
-
-require 'rspec'
+require "turnip/execute"
+require "turnip/define"
+require "turnip/builder"
+require "turnip/step_definition"
+require "turnip/placeholder"
+require "turnip/table"
 
 module Turnip
-  autoload :Config, 'turnip/config'
-  autoload :FeatureFile, 'turnip/feature_file'
-  autoload :Loader, 'turnip/loader'
-  autoload :Builder, 'turnip/builder'
-  autoload :StepDefinition, 'turnip/step_definition'
-  autoload :Placeholder, 'turnip/placeholder'
-  autoload :Table, 'turnip/table'
-  autoload :StepLoader, 'turnip/step_loader'
-  autoload :StepModule, 'turnip/step_module'
-  autoload :ScenarioRunner, 'turnip/scenario_runner'
-  autoload :RunnerDSL, 'turnip/runner_dsl'
-  autoload :ScenarioContext, 'turnip/scenario_context'
+  class Pending < StandardError; end
+  class Ambiguous < StandardError; end
+
+  ##
+  #
+  # The global step module, adding steps here will make them available in all
+  # your tests.
+  #
+  module Steps
+  end
 
   class << self
-    attr_accessor :type
+    attr_accessor :type, :step_dirs
 
-    def run(feature_file)
-      Turnip::Builder.build(feature_file).features.each do |feature|
-        describe feature.name, feature.metadata_hash do
-          feature.scenarios.each do |scenario|
-            it scenario.name, scenario.metadata_hash do
-              Turnip::ScenarioRunner.new(self).load(Turnip::ScenarioContext.new(feature, scenario)).run
-            end
-          end
-        end
+    def load_steps
+      return if @steps_loaded
+      Turnip.step_dirs.each do |dir|
+        Dir.glob(File.join(dir, '**', "*steps.rb")).each { |file| load file, true }
       end
+      @steps_loaded = true
     end
   end
 end
 
 Turnip.type = :turnip
+Turnip.step_dirs = ['spec']
 
-RSpec::Core::Configuration.send(:include, Turnip::Loader)
-
-RSpec.configure do |config|
-  config.pattern << ",**/*.feature"
-end
+Module.send(:include, Turnip::Define)
 
 self.extend Turnip::DSL
+
+require "turnip/rspec"

@@ -4,30 +4,7 @@ module Turnip
       def expression; step_definition.expression; end
     end
 
-    class Pending < StandardError; end
-    class Ambiguous < StandardError; end
-
     attr_reader :expression, :block
-
-    class << self
-      def execute(context, available_steps, step)
-        match = find(available_steps, step.description)
-        params = match.params
-        params << step.extra_arg if step.extra_arg
-        context.instance_exec(*params, &match.block)
-      rescue Pending
-        context.pending "the step '#{step.description}' is not implemented"
-      end
-
-      def find(available_steps, description)
-        found = available_steps.map do |step|
-          step.match(description)
-        end.compact
-        raise Pending, description if found.length == 0
-        raise Ambiguous, description if found.length > 1
-        found[0]
-      end
-    end
 
     def initialize(expression, &block)
       @expression = expression
@@ -61,17 +38,17 @@ module Turnip
         expression
       else
         regexp = Regexp.escape(expression)
+        regexp.gsub!(PLACEHOLDER_REGEXP) do |_|
+          "(?<#{$1}>#{Placeholder.resolve($1.to_sym)})"
+        end
         regexp.gsub!(COMMAND_REGEXP) do |_|
           "(?:[`]([^`]+)[`])"
         end
         regexp.gsub!(OPTIONAL_WORD_REGEXP) do |_|
-          [$1, $2, $3].compact.map { |m| "(#{m})?" }.join
+          [$1, $2, $3].compact.map { |m| "(?:#{m})?" }.join
         end
         regexp.gsub!(ALTERNATIVE_WORD_REGEXP) do |_|
-          "(#{$1}#{$2.tr('/', '|')})"
-        end
-        regexp.gsub!(PLACEHOLDER_REGEXP) do |_|
-          "(?<#{$1}>#{Placeholder.resolve($1.to_sym)})"
+          "(?:#{$1}#{$2.tr('/', '|')})"
         end
         Regexp.new("^#{regexp}$")
       end
