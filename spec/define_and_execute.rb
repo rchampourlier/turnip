@@ -30,4 +30,14 @@ describe Turnip::Execute do
     mod.step("a :test step") { |test, foo| test.upcase + foo }
     obj.step(builder_step).should == "COOLfoo"
   end
+
+  it "allows step with regexp" do
+    mod.step(%r{a test step}) { "monkey" }
+    obj.step("a test step").should == "monkey"
+  end
+
+  it "allows step with regexp and arguments" do
+    mod.step(%r{a (\w+) step}) { |test| test.upcase }
+    obj.step("a cool step").should == "COOL"
+  end
 end
