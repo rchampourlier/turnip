@@ -9,7 +9,11 @@ module Turnip
       end.compact
       raise Turnip::Pending, description if matches.length == 0
       raise Turnip::Ambiguous, description if matches.length > 1
-      send(matches.first.expression, *(matches.first.params + extra_args))
+      if matches.first.expression.is_a? Regexp
+        send("execute: #{matches.first.expression}", *(matches.first.params + extra_args))
+      else
+        send(matches.first.expression, *(matches.first.params + extra_args))
+      end
     end
   end
 end
