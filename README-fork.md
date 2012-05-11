@@ -38,6 +38,7 @@ However with hundreds of step definitions, **I don't want to spend hours convert
 
 * Changed StepDefinition to support Regexp.
 * Added some specs to ensure this is working correctly with Regexps too.
+* As of Turnip 0.3.1, changed the way of joining steps to show a more Cucumber-like list of steps (using new lines and spaces instead of ' -> ')
 
 ## Installation
 
